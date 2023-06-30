@@ -1,0 +1,8 @@
+﻿# Project exclude paths
+/venv/
+/annotations/
+/Cats_and_Dogs/
+/data/
+/images/
+/P01_109/
+/P02_108/
