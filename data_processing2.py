@@ -1,35 +1,37 @@
 ﻿# 处理图片数据
 import os
+
+import cv2
 import pandas as pd
+import tarfile
+
 
 # 更改文件夹中图片的名称，全都改为P01_109_1的格式
-folder_path = "P02_108"  # 文件夹路径
-prefix = "P02_108_"  # 新的文件名前缀
-
-file_list = os.listdir(folder_path)  # 获取文件夹中的文件列表
-
-for i, file_name in enumerate(file_list):
-    _, ext = os.path.splitext(file_name)  # 获取文件名和扩展名
-    new_file_name = f"{prefix}{i+1}{ext}"  # 构建新的文件名
-    old_file_path = os.path.join(folder_path, file_name)  # 原始文件路径
-    new_file_path = os.path.join(folder_path, new_file_name)  # 新文件路径
-    os.rename(old_file_path, new_file_path)  # 重命名文件
-
-ext = '.jpg'
-for i in range(500):
-    # _, ext = os.path.splitext(file_name)  # 获取文件名和扩展名
-    frame_number_string = str(i).zfill(10)
-    orig_file_name = f"frame_{frame_number_string}{ext}"
-    print(orig_file_name)
-    new_file_name = f"{prefix}{i+1}{ext}"  # 构建新的文件名
-    print(new_file_name)
-    old_file_path = os.path.join(folder_path, orig_file_name)  # 原始文件路径
-    new_file_path = os.path.join(folder_path, new_file_name)  # 新文件路径
-    os.rename(old_file_path, new_file_path)  # 重命名文件
+# folder_path = "P02_108"  # 文件夹路径
+# prefix = "P02_108_"  # 新的文件名前缀
+#
+# file_list = os.listdir(folder_path)  # 获取文件夹中的文件列表
+#
+# ext = '.jpg'
+# for i in range(1, 501):
+#     frame_number_string = str(i).zfill(10)
+#     orig_file_name = f"frame_{frame_number_string}{ext}"
+#     print("orig_file_name:"+orig_file_name)
+#     new_file_name = f"{prefix}{i}{ext}"  # 构建新的文件名
+#     print("new_file_name:"+new_file_name)
+#     # old_file_path = os.path.join(folder_path, orig_file_name)  # 原始文件路径
+#     # new_file_path = os.path.join(folder_path, new_file_name)  # 新文件路径
+#     # os.rename(old_file_path, new_file_path)  # 重命名文件
 
 
+# 展示某一个图片
+# image = cv2.imread("P02_108/P02_108_447.jpg")
+# cv2.imshow('Image', image)
+# cv2.waitKey(0)  # 等待按下任意按键后关闭窗口
+# cv2.destroyAllWindows()
 
-# # 按照csv中的顺序在文件夹中排列图片
+
+# # 删除不存在于CSV文件中的图片
 # folder_path = "P02_108"  # 文件夹路径
 # csv_file = "P02_108.csv"  # CSV文件路径
 #

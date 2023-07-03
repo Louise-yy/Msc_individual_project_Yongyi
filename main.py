@@ -20,8 +20,8 @@ label_file = "file/label.csv"
 
 # Read the label file, get the image file name and corresponding label
 df = pd.read_csv(label_file)
-df_image_filenames = df["narration_id"].tolist()
-df_labels = df["noun_class"].tolist()
+df_image_filenames = df["stop_frame"].tolist()
+df_labels = df["all_noun_classes"].tolist()
 
 
 # Use LabelEncoder to encode labels
@@ -31,6 +31,7 @@ df_labels = df["noun_class"].tolist()
 # num_classes = len(label_encoder.classes_)
 #
 # print(num_classes)
+
 
 def preprocess_image(image):
     resized_image = cv2.resize(image, (150, 150))
@@ -83,7 +84,7 @@ train_label_data = tf.data.Dataset.from_generator(
 #
 # The image data and label data are paired, and the paired data is
 # divided into batches, each batch contains 32 images and corresponding labels
-train_dataset = tf.data.Dataset.zip((train_image_data, train_label_data)).batch(16)
+train_dataset = tf.data.Dataset.zip((train_image_data, train_label_data)).batch(8)
 
 # # A data generator that creates a testing set
 # test_image_data = tf.data.Dataset.from_generator(
@@ -101,21 +102,6 @@ train_dataset = tf.data.Dataset.zip((train_image_data, train_label_data)).batch(
 
 
 # Built model
-
-# model = tf.keras.Sequential([
-#     tf.keras.layers.Conv2D(32, (3, 3), activation='relu', input_shape=(150, 150, 3)),
-#     tf.keras.layers.MaxPooling2D((2, 2)),
-#     tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
-#     tf.keras.layers.MaxPooling2D((2, 2)),
-#     tf.keras.layers.Conv2D(128, (3, 3), activation='relu'),
-#     tf.keras.layers.MaxPooling2D((2, 2)),
-#     tf.keras.layers.Conv2D(128, (3, 3), activation='relu'),
-#     tf.keras.layers.MaxPooling2D((2, 2)),
-#     tf.keras.layers.Flatten(),
-#     tf.keras.layers.Dense(256, activation='relu'),
-#     tf.keras.layers.Dense(20, activation='softmax')
-# ])
-
 conv_base = VGG16(weights='imagenet',
                   include_top=False,
                   input_shape=(150, 150, 3))
