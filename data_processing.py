@@ -48,7 +48,7 @@ pd.set_option('display.max_rows', None)
 # # 2.筛选属于特定文件夹中的行
 # df = pd.read_csv("file/front20.csv")
 # # selected_rows = df[df['narration_id'].str.startswith(('P01_109', 'P02_108', 'P02_112', 'P02_129', 'P04_107'))]
-# selected_rows = df[df['narration_id'].str.startswith('P02_112')]  # ################################3
+# selected_rows = df[df['narration_id'].str.startswith('P04_121')]  # ################################3
 # # selected_rows = df[df['narration_id'].str.startswith(('P01_109', 'P02_108'))]
 # # 给第一列后面增加.jpg字符串
 # # selected_rows['narration_id'] = selected_rows['narration_id'].astype(str) + ".jpg"
@@ -57,27 +57,27 @@ pd.set_option('display.max_rows', None)
 # # 筛选需要的列
 # selected_columns = selected_rows.iloc[:, [0, 1, 2, 3, 6, 7]]
 # # 输出
-# selected_columns.to_csv('file/P02_112.csv', index=False)  # ##############################
+# selected_columns.to_csv('file/P04_121.csv', index=False)  # ##############################
 
 
 
 # # 3.把csv中stop_frame这一列从11074改成./frame_0000011074.jpg
-# file_path = "file/P02_112.csv"  # ####################################
+# file_path = "file/P04_107.csv"  # ####################################
 # # 读取CSV文件
 # df = pd.read_csv(file_path)
 # # 提取数字部分
 # df['stop_frame'] = './frame_' + df['stop_frame'].astype(str).str.zfill(10) + '.jpg'
 # # print(df['start_frame'])
 # # 保存修改后的数据到CSV文件
-# df.to_csv('file/P02_112(2).csv', index=False)  # #################################
+# df.to_csv('file/P04_107(2).csv', index=False)  # #################################
 
 
 
 # # 4.从tar压缩包中提取与CSV文件中stop_frame列的数据对应的照片
-# tar_file_path = '/media/louise/UBUNTU 20_0/yy/P02_112.tar'  # ############################
-# csv_file_path = 'file/P02_112(2).csv'  # ########################
+# tar_file_path = '/media/louise/UBUNTU 20_0/yy/P04_107.tar'  # ############################
+# csv_file_path = 'file/P04_107(2).csv'  # ########################
 # df = pd.read_csv(csv_file_path)
-# output_folder = 'P02_112'  # ##########################
+# output_folder = 'P04_107'  # ##########################
 # os.makedirs(output_folder, exist_ok=True)
 # # 获取start_frame列中的所有数据作为目标图片名列表
 # target_image_names = df['stop_frame'].astype(str).tolist()
@@ -99,7 +99,7 @@ pd.set_option('display.max_rows', None)
 
 
 # # 5.把P02_108.csv的stop_frame列中的数按大小排列并输出 主要是为了检查提取出来的图片对不对
-# csv_file_path = 'file/P02_112.csv'  # ###########################
+# csv_file_path = 'file/P04_107.csv'  # ###########################
 # df = pd.read_csv(csv_file_path)
 # # 按照 start_frame 列进行升序排序
 # df_sorted = df.sort_values(by='stop_frame')
@@ -108,20 +108,20 @@ pd.set_option('display.max_rows', None)
 
 
 # # 6.把P02_108.csv中stop_frame这一列从11074改成P02_108_11074.jpg并保存到P02_108(2).csv中
-# file_path = "file/P02_112.csv"  # ###################################
+# file_path = "file/P04_107.csv"  # ###################################
 # # 读取CSV文件
 # df = pd.read_csv(file_path)
 # # 提取数字部分
-# df['stop_frame'] = 'P02_112_' + df['stop_frame'].astype(str) + '.jpg'  # ##############################
+# df['stop_frame'] = 'P04_107_' + df['stop_frame'].astype(str) + '.jpg'  # ##############################
 # # print(df['stop_frame'])
 # # 保存修改后的数据到CSV文件
-# df.to_csv('file/P02_112(2).csv', index=False)  # ###############################
+# df.to_csv('file/P04_107(2).csv', index=False)  # ###############################
 
 
 
 # # 7.更改文件夹中图片的名称，全都改为P02_108_1.jpg的格式
-# folder_path = 'P02_112'  # ########################33
-# prefix = "P02_112_"  # ##########################3
+# folder_path = 'P04_107'  # ########################
+# prefix = "P04_107_"  # ##########################
 # # 获取文件夹中的所有文件名
 # files = os.listdir(folder_path)
 # number = 0
@@ -144,6 +144,7 @@ pd.set_option('display.max_rows', None)
 #     os.rename(old_path, new_path)
 #
 # print("文件名修改完成 " + str(number))
+
 
 
 # 将所有的（2）文件合成为一个
