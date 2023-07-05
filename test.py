@@ -5,8 +5,10 @@ import numpy as np
 import tensorflow as tf
 from keras import models
 from keras import layers
+from keras import optimizers
 from keras.applications import VGG16
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MultiLabelBinarizer
 from tensorflow.keras.utils import to_categorical
 from keras import backend as K
 
@@ -20,20 +22,16 @@ label_file = "file/label.csv"
 
 # Read the label file, get the image file name and corresponding label
 df = pd.read_csv(label_file)
-df_image_filenames = df["narration_id"].tolist()
-df_labels = df["noun_class"].tolist()
+df_image_filenames = df["stop_frame"].tolist()
+# df_labels = df["all_noun_classes"].tolist()
+df_labels = df["all_noun_classes"].astype(str)
 
+mlb = MultiLabelBinarizer()
+encoded_labels = mlb.fit_transform(df_labels)
 
-# Use LabelEncoder to encode labels
-# label_encoder = LabelEncoder()  # 创建LabelEncoder实例
-# label_encoder.fit(df_labels)  # 将标签列表labels作为输入，对label_encoder进行拟合（训练），从而确定编码规则
-# encoded_labels = label_encoder.transform(df_labels)  # 将原始的标签列表labels转换为相应的整数编码形式
-# num_classes = len(label_encoder.classes_)
-#
-# print(num_classes)
 
 def preprocess_image(image):
-    resized_image = cv2.resize(image, (150, 150))
+    resized_image = cv2.resize(image, (100, 100))
 
     normalized_image = resized_image.astype(np.float32)
 
@@ -53,37 +51,35 @@ for filename in df_image_filenames:
     # Perform image preprocessing
     image = preprocess_image(image)
 
-    # Add image data and corresponding labels to the data list
-    index = df_image_filenames.index(filename)
-    label = df_labels[index]
-    image_data.append((image, label))
+    # Add image data to the data list
+    image_data.append(image)
 
 # Split image data and labels into training and testing sets
-train_data, test_data = train_test_split(image_data, test_size=0.2, random_state=42)
+# train_data, test_data = train_test_split(image_data, test_size=0.2, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(image_data, encoded_labels, test_size=0.2, random_state=42)
+
+# def to_categorical_wrapper(label):
+#     return tf.py_function(to_categorical, [label, 20], tf.int32)
 
 
-def to_categorical_wrapper(label):
-    return tf.py_function(to_categorical, [label, 20], tf.int32)
-
-
-# A data generator that creates a training set
-train_image_data = tf.data.Dataset.from_generator(
-    lambda: (image for image, _ in train_data),
-    output_signature=tf.TensorSpec(shape=(150, 150, 3), dtype=tf.float32)
-)
-train_label_data = tf.data.Dataset.from_generator(
-    # Use lambda function to generate label data, where each element is a label
-    lambda: (label for _, label in train_data),
-    # Specifies the shape and data type of the tensor output by the generator
-    # the shape of the label is () and the data type is int32
-    output_signature=tf.TensorSpec(shape=(), dtype=tf.int32)
-)
-# The to_categorical_wrapper function converts label data into a one-hot encoding form train_label_data =
-# train_label_data.map(to_categorical_wrapper)
-#
-# The image data and label data are paired, and the paired data is
-# divided into batches, each batch contains 32 images and corresponding labels
-train_dataset = tf.data.Dataset.zip((train_image_data, train_label_data)).batch(16)
+# # A data generator that creates a training set
+# train_image_data = tf.data.Dataset.from_generator(
+#     lambda: (image for image, _ in train_data),
+#     output_signature=tf.TensorSpec(shape=(100, 100, 3), dtype=tf.float32)
+# )
+# train_label_data = tf.data.Dataset.from_generator(
+#     # Use lambda function to generate label data, where each element is a label
+#     lambda: (label for _, label in train_data),
+#     # Specifies the shape and data type of the tensor output by the generator
+#     # the shape of the label is () and the data type is int32
+#     output_signature=tf.TensorSpec(shape=(), dtype=tf.int32)
+# )
+# # The to_categorical_wrapper function converts label data into a one-hot encoding form train_label_data =
+# # train_label_data.map(to_categorical_wrapper)
+# #
+# # The image data and label data are paired, and the paired data is
+# # divided into batches, each batch contains 32 images and corresponding labels
+# train_dataset = tf.data.Dataset.zip((train_image_data, train_label_data)).batch(4)
 
 # # A data generator that creates a testing set
 # test_image_data = tf.data.Dataset.from_generator(
@@ -99,34 +95,31 @@ train_dataset = tf.data.Dataset.zip((train_image_data, train_label_data)).batch(
 #                   include_top=False,
 #                   input_shape=(150, 150, 3))
 
+# 创建 TensorFlow 的数据集对象
+train_dataset = tf.data.Dataset.from_tensor_slices((X_train, y_train))
+test_dataset = tf.data.Dataset.from_tensor_slices((X_test, y_test))
+
+# 对训练集和测试集进行批处理和混洗
+batch_size = 8
+train_dataset = train_dataset.shuffle(len(X_train)).batch(batch_size)
+test_dataset = test_dataset.batch(batch_size)
 
 # Built model
-
-# model = tf.keras.Sequential([
-#     tf.keras.layers.Conv2D(32, (3, 3), activation='relu', input_shape=(150, 150, 3)),
-#     tf.keras.layers.MaxPooling2D((2, 2)),
-#     tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
-#     tf.keras.layers.MaxPooling2D((2, 2)),
-#     tf.keras.layers.Conv2D(128, (3, 3), activation='relu'),
-#     tf.keras.layers.MaxPooling2D((2, 2)),
-#     tf.keras.layers.Conv2D(128, (3, 3), activation='relu'),
-#     tf.keras.layers.MaxPooling2D((2, 2)),
-#     tf.keras.layers.Flatten(),
-#     tf.keras.layers.Dense(256, activation='relu'),
-#     tf.keras.layers.Dense(20, activation='softmax')
-# ])
-
 conv_base = VGG16(weights='imagenet',
                   include_top=False,
-                  input_shape=(150, 150, 3))
+                  input_shape=(100, 100, 3))
+
 model = models.Sequential()
 model.add(conv_base)
 model.add(layers.Flatten())
-model.add(layers.Dense(256, activation='relu'))
-model.add(layers.Dense(1, activation='sigmoid'))
+model.add(layers.Dense(1024, activation='relu'))
+model.add(layers.Dense(20, activation='softmax'))
+model.summary()
+
+conv_base.trainable = False
 
 # Compile model
-model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+model.compile(optimizer='rmsprop', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
 # Train the model
 model.fit(train_dataset, epochs=10)
