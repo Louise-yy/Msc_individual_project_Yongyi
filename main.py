@@ -29,11 +29,11 @@ df_labels = df["all_noun_classes"].astype(str)
 mlb = MultiLabelBinarizer()
 encoded_labels = mlb.fit_transform(df_labels)
 
-num_classes = 20
-binary_encoded = np.zeros((len(df_labels), num_classes), dtype=int)
-for i, label_list in enumerate(df_labels):
-    for label in label_list:
-        binary_encoded[i, label - 1] = 1
+# num_classes = 20
+# binary_encoded = np.zeros((len(df_labels), num_classes), dtype=int)
+# for i, label_list in enumerate(df_labels):
+#     for label in label_list:
+#         binary_encoded[i, label - 1] = 1
 
 
 def preprocess_image(image):
