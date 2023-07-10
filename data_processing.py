@@ -6,6 +6,7 @@ import ast
 import tarfile
 import cv2
 import glob
+import csv
 
 
 pd.set_option('display.max_columns', None)
@@ -193,14 +194,20 @@ pd.set_option('display.max_rows', None)
 
 
 
-# # 特殊格式！！！！！！！！！！！！！
-# # 读取 CSV 文件
-# df = pd.read_csv('file/label_special.csv')
-#
-# # 按 stop_frame 列进行分组，并将 all_noun_classes 列的值合并为逗号分隔的字符串
-# df_grouped = df.groupby('stop_frame')['all_noun_classes'].apply(lambda x: ','.join(map(str, x))).reset_index()
-#
-# df_grouped.to_csv('file/label_special(2).csv', index=False)
+# 特殊格式！！！！！！！！！！！！！不展开了
+# 读取 CSV 文件
+df = pd.read_csv('file/label_special.csv')
+
+# 将all_noun_classes列的整数值转换为字符串
+df['all_noun_classes'] = df['all_noun_classes'].astype(str)
+
+# 按 stop_frame 列进行分组，并将 all_noun_classes 列的值合并为逗号分隔的字符串
+# df_grouped = df.groupby('stop_frame').agg({'all_noun_classes': lambda x: ','.join(x), 'all_nouns': lambda x: ','.join(x), 'stop_frame': 'first', 'stop_frame': 'first'})
+df_grouped = df.groupby('stop_frame').agg({'all_noun_classes': lambda x: ','.join(x), 'all_nouns': lambda x: ','.join(x)})
+# 重置索引
+df_grouped.reset_index(inplace=True)
+
+df_grouped.to_csv('file/label_special_after_change.csv', index=False)
 
 
 
@@ -209,3 +216,18 @@ pd.set_option('display.max_rows', None)
 # df_exp = pd.read_csv('file/label.csv')
 # value_counts = df_exp['all_nouns'].value_counts().sort_values(ascending=False)
 # print(value_counts)
+
+
+
+# # 把EPIC.csv中的左右括号和单引号去掉变成water, saucepan
+# input_file = 'file/EPIC_100_train.csv'
+# output_file = 'file/EPIC_100_train2.csv'
+#
+# # 读取CSV文件
+# df = pd.read_csv(input_file)
+#
+# # 去掉左右括号和单引号
+# df['all_nouns'] = df['all_nouns'].str.replace('[', '').str.replace(']', '').str.replace("'", "")
+#
+# # 写入新的CSV文件
+# df.to_csv(output_file, index=False)

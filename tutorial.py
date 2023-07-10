@@ -1,4 +1,5 @@
-﻿import logging
+﻿# -*-coding:utf-8-*-
+import logging
 import os
 import warnings
 
@@ -8,9 +9,8 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import tensorflow as tf
-import tensorflow_hub as hub
+# import tensorflow_hub as hub
 
-from keras.applications import VGG16
 from datetime import datetime
 from keras.preprocessing import image
 from PIL import Image
@@ -19,63 +19,87 @@ from sklearn.model_selection import train_test_split
 from sklearn.calibration import calibration_curve
 from tensorflow.keras import layers
 
-# from utils import *
-
-physical_devices = tf.config.list_physical_devices('GPU')
-tf.config.experimental.set_memory_growth(physical_devices[0], True)
+from utils import *
 
 warnings.filterwarnings('ignore')
 logging.getLogger("tensorflow").setLevel(logging.ERROR)
 print("TF version:", tf.__version__)
 
-df = pd.read_csv("file/label_special_after_change.csv")
-# Get label frequencies in descending order
-label_freq = df['all_nouns'].apply(lambda s: str(s).split(',')).explode().value_counts().sort_values(ascending=False)
+# Read dataset file
+movies = pd.read_csv("archive/MovieGenre.csv", encoding="ISO-8859-1")
+movies.head()
 
-# # Bar plot
-# style.use("fivethirtyeight")
-# plt.figure(figsize=(12, 10))
-# sns.barplot(y=label_freq.index.values, x=label_freq, order=label_freq.index)
-# plt.title("Label frequency", fontsize=14)
-# plt.xlabel("")
-# plt.xticks(fontsize=12)
-# plt.yticks(fontsize=12)
-# plt.show()
+# Clean dataset
+# Remove rows having a missing Id, Genre or Poster
+movies.dropna(subset=['imdbId', 'Genre', 'Poster'], inplace=True)
+# Remove "Adult" movies
+movies.drop(movies[movies['Genre'].str.contains('Adult')].index, inplace=True)
+# Show some examples
+print(movies.head(3))
+
+
+# Download images
+# Define destination folder
+destination = './data/movie_poster/images'
+# Download in parallel and return the successful subset of the movies dataframe
+movies = download_parallel(movies, destination)
+
+print("Final number of movie posters to keep:", len(movies))
+
+# Save the final movies dataframe to disk
+munge_dir = "./munge"
+if not os.path.exists(munge_dir):
+    os.makedirs(munge_dir)
+movies.to_csv(os.path.join(munge_dir, "movies.csv"), index=False)
+
+movies = pd.read_csv("./munge/movies.csv")
+print("Number of movie posters in last download: {}\n".format(len(movies)))
+movies.head(3)
+
+# Get label frequencies in descending order
+label_freq = movies['Genre'].apply(lambda s: str(s).split('|')).explode().value_counts().sort_values(ascending=False)
+
+# Bar plot
+style.use("fivethirtyeight")
+plt.figure(figsize=(12,10))
+sns.barplot(y=label_freq.index.values, x=label_freq, order=label_freq.index)
+plt.title("Label frequency", fontsize=14)
+plt.xlabel("")
+plt.xticks(fontsize=12)
+plt.yticks(fontsize=12)
+plt.show()
 
 # Create a list of rare labels
-rare = list(label_freq[label_freq < 2].index)
+rare = list(label_freq[label_freq<1000].index)
 print("We will be ignoring these rare labels:", rare)
 
 # Transform Genre into a list of labels and remove the rare ones
-df['all_nouns'] = df['all_nouns'].apply(lambda s: [l for l in str(s).split(',') if l not in rare])
-print(df.head())
-print("Number of sample:", len(df))
+movies['Genre'] = movies['Genre'].apply(lambda s: [l for l in str(s).split('|') if l not in rare])
+print(movies.head())
 
-X_train, X_val, y_train, y_val = train_test_split(df['stop_frame'], df['all_nouns'], test_size=0.2, random_state=44)
+X_train, X_val, y_train, y_val = train_test_split(movies['imdbId'], movies['Genre'], test_size=0.2, random_state=44)
 print("Number of posters for training: ", len(X_train))
 print("Number of posters for validation: ", len(X_val))
 
-X_train = [os.path.join('data', str(f)) for f in X_train]
-X_val = [os.path.join('data', str(f)) for f in X_val]
-print("X_train[:8]:", X_train[:8])
+X_train = [os.path.join('archive/SampleMoviePosters/SampleMoviePosters', str(f)+'.jpg') for f in X_train]
+X_val = [os.path.join('archive/SampleMoviePosters/SampleMoviePosters', str(f)+'.jpg') for f in X_val]
+print(X_train[:3])
 
 y_train = list(y_train)
 y_val = list(y_val)
-print("y_train[:8]:", y_train[:8])
-
+print(y_train[:3])
 
 nobs = 8  # Maximum number of images to display
 ncols = 4  # Number of columns in display
 nrows = nobs//ncols  # Number of rows in display
 
-# style.use("default")
-# plt.figure(figsize=(12, 4*nrows))
-# for i in range(nrows*ncols):
-#     ax = plt.subplot(nrows, ncols, i+1)
-#     plt.imshow(Image.open(X_train[i]))
-#     plt.title(y_train[i], size=10)
-#     plt.axis('off')
-# plt.show()
+style.use("default")
+plt.figure(figsize=(12, 4*nrows))
+for i in range(nrows*ncols):
+    ax = plt.subplot(nrows, ncols, i+1)
+    plt.imshow(Image.open(X_train[i]))
+    plt.title(y_train[i], size=10)
+    plt.axis('off')
 
 # Fit the multi-label binarizer on the training set
 print("Labels:")
@@ -98,7 +122,6 @@ for i in range(3):
 IMG_SIZE = 224  # Specify height and width of image to match the input format of the model
 CHANNELS = 3  # Keep RGB color channels to match the input format of the model
 
-
 def parse_function(filename, label):
     """Function that returns a tuple of normalized image array and labels array.
     Args:
@@ -115,10 +138,9 @@ def parse_function(filename, label):
     image_normalized = image_resized / 255.0
     return image_normalized, label
 
-
-BATCH_SIZE = 64  # Big enough to measure an F1-score
-AUTOTUNE = tf.data.experimental.AUTOTUNE  # Adapt preprocessing and prefetching dynamically
-SHUFFLE_BUFFER_SIZE = 1024  # Shuffle the training data by a chunck of 1024 observations
+BATCH_SIZE = 256 # Big enough to measure an F1-score
+AUTOTUNE = tf.data.experimental.AUTOTUNE # Adapt preprocessing and prefetching dynamically
+SHUFFLE_BUFFER_SIZE = 1024 # Shuffle the training data by a chunck of 1024 observations
 
 
 def create_dataset(filenames, labels, is_training=True):
@@ -147,7 +169,6 @@ def create_dataset(filenames, labels, is_training=True):
 
     return dataset
 
-
 train_ds = create_dataset(X_train, y_train_bin)
 val_ds = create_dataset(X_val, y_val_bin)
 
@@ -155,14 +176,10 @@ for f, l in train_ds.take(1):
     print("Shape of features array:", f.numpy().shape)
     print("Shape of labels array:", l.numpy().shape)
 
-# conv_base = VGG16(weights='imagenet',
-#                   include_top=False,
-#                   input_shape=(IMG_SIZE, IMG_SIZE, CHANNELS))
-# conv_base.trainable = False
-
 feature_extractor_url = "https://tfhub.dev/google/imagenet/mobilenet_v2_100_224/feature_vector/4"
 feature_extractor_layer = hub.KerasLayer(feature_extractor_url,
-                                         input_shape=(IMG_SIZE, IMG_SIZE, CHANNELS))
+                                         input_shape=(IMG_SIZE,IMG_SIZE,CHANNELS))
+
 feature_extractor_layer.trainable = False
 
 model = tf.keras.Sequential([
@@ -173,9 +190,10 @@ model = tf.keras.Sequential([
 
 model.summary()
 
-# for batch in train_ds:
-#     print(model.predict(batch)[:1])
-#     break
+for batch in train_ds:
+    print(model.predict(batch)[:1])
+    break
+
 
 @tf.function
 def macro_soft_f1(y, y_hat):
@@ -220,22 +238,43 @@ def macro_f1(y, y_hat, thresh=0.5):
     macro_f1 = tf.reduce_mean(f1)
     return macro_f1
 
-
-LR = 1e-5  # Keep it small when transfer learning
+LR = 1e-5 # Keep it small when transfer learning
 EPOCHS = 30
-
-# model.compile(
-#   optimizer='rmsprop',
-#   loss='sparse_categorical_crossentropy',
-#   metrics=['accuracy'])
 
 model.compile(
   optimizer=tf.keras.optimizers.Adam(learning_rate=LR),
   loss=macro_soft_f1,
   metrics=[macro_f1])
 
-start = datatime
+
+start = time()
 history = model.fit(train_ds,
                     epochs=EPOCHS,
                     validation_data=create_dataset(X_val, y_val_bin))
-# print('\nTraining took {}'.format(print_time(time()-start)))
+print('\nTraining took {}'.format(print_time(time()-start)))
+
+losses, val_losses, macro_f1s, val_macro_f1s = learning_curves(history)
+
+print("Macro soft-F1 loss: %.2f" %val_losses[-1])
+print("Macro F1-score: %.2f" %val_macro_f1s[-1])
+
+model_bce = tf.keras.Sequential([
+    feature_extractor_layer,
+    layers.Dense(N_LABELS, activation='sigmoid')
+])
+
+model_bce.compile(
+    optimizer=tf.keras.optimizers.Adam(lr=5e-4),
+    loss=tf.keras.metrics.binary_crossentropy,
+    metrics=[macro_f1])
+
+start = time()
+history_bce = model_bce.fit(train_ds,
+                            epochs=EPOCHS,
+                            validation_data=create_dataset(X_val, y_val_bin))
+print('\nTraining took {}'.format(print_time(time() - start)))
+
+model_bce_losses, model_bce_val_losses, model_bce_macro_f1s, model_bce_val_macro_f1s = learning_curves(history_bce)
+
+print("Macro soft-F1 loss: %.2f" %model_bce_val_losses[-1])
+print("Macro F1-score: %.2f" %model_bce_val_macro_f1s[-1])
