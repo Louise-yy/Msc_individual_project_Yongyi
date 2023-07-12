@@ -42,7 +42,7 @@ label_freq = df['all_nouns'].apply(lambda s: str(s).split(',')).explode().value_
 # plt.yticks(fontsize=12)
 # plt.show()
 
-# Create a list of rare labels
+# Create a list of rare labels 只是要过一遍这个流程，不然shape会不对
 rare = list(label_freq[label_freq < 2].index)
 print("We will be ignoring these rare labels:", rare)
 
@@ -234,7 +234,7 @@ model.compile(
   loss=macro_soft_f1,
   metrics=[macro_f1])
 
-start = datatime
+# start = datatime
 history = model.fit(train_ds,
                     epochs=EPOCHS,
                     validation_data=create_dataset(X_val, y_val_bin))
